@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from certificato import Certificato
 
+
 class GuiApp:
     def __init__(self, root):
         self.root = root
@@ -11,7 +12,8 @@ class GuiApp:
         self.root.configure(background="white")
         self.root.title("Auto configurazione Papercut")
 
-        frame_classes = [IpConfFrame, CertificatoFrame]
+
+        frame_classes = [IpConfFrame, CertificatoFrame]#, NtpFrame
 
         self.frames = {}
 
@@ -29,8 +31,8 @@ class GuiApp:
     def mostra_ip(self):
         self.mostra_frame(IpConfFrame)
 
-    """def mostra_ntp(self):
-        self.mostra_frame(NtpFrame)"""
+    #def mostra_ntp(self):
+        #self.mostra_frame(NtpFrame)
 
     def mostra_certificato(self):
         self.mostra_frame(CertificatoFrame)
@@ -44,7 +46,7 @@ class IpConfFrame(tk.Frame):
         tk.Label(self, text="Inserire indirizzo IP della macchina", font=("Helvetica", 16)).pack()
         self.indirizzo_entry = tk.Entry(self)
         self.indirizzo_entry.pack()
-        tk.Button(self, text="Conferma", command= lambda: (self.salva_indirizzo(), self.controller.mostra_ntp())).pack()
+        tk.Button(self, text="Conferma", command= lambda: (self.salva_indirizzo(), self.controller.mostra_certificato())).pack()
     
     def salva_indirizzo(self):
         self.controller.indirizzo_ip = self.indirizzo_entry.get()
@@ -56,12 +58,11 @@ class IpConfFrame(tk.Frame):
         self.controller = controller
 
         tk.Label(self, text="Si desidera impostare il regolamento automatico dell'ora?", font=("Helvetica", 16)).pack()
-        tk.Button(self, text="Sì", command= lambda: (self.salva_ntp(), self.controller.mostra_certificato())).pack()
-        tk.Button(self, text="Sì", command= lambda: (self.salva_ntp(), self.controller.mostra_certificato())).pack()
+        tk.Button(self, text="Sì", command= lambda: (self.salva_ntp(True), self.controller.mostra_certificato())).pack()
+        tk.Button(self, text="No", command= lambda: (self.salva_ntp(False), self.controller.mostra_certificato())).pack()
     
-    def salva_ntp(self):
-        self.controller.hasNtp = self."""
-
+    def salva_ntp(self, valore):
+        self.config.set_ntp(valore)"""
 
 
 class CertificatoFrame(tk.Frame):

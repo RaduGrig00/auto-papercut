@@ -8,42 +8,19 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 from utils import wait_random_time, torna_indietro
-from certificato import Certificato
+from config import Config
 
-options = Options()
-options.add_argument("--incognito")
-# Opzioni per ignorare errori SSL/certificati
-options.add_argument('--ignore-certificate-errors')
-options.add_argument('--ignore-ssl-errors')
-options.add_argument('--ignore-certificate-errors-spki-list')
-options.add_argument('--allow-running-insecure-content')
-options.add_argument('--disable-web-security')
-options.add_argument('--allow-running-insecure-content')
-options.add_argument('--ignore-certificate-errors-spki-list')
-options.add_argument('--ignore-ssl-errors-type')
-options.add_argument('--accept-insecure-certs')
-options.add_argument('--disable-features=VizDisplayCompositor')
-options.add_argument('--test-type')
-options.add_argument('--disable-extensions')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
-options.add_experimental_option('useAutomationExtension', False)
-options.add_experimental_option("excludeSwitches", ["enable-automation"])
-options.add_experimental_option("prefs", {
-    "directory_upgrade": True,
-    "profile.default_content_settings.popups": 0,
-    "plugins.always_open_pdf_externally": True,
-    "profile.default_content_setting_values.automatic_downloads": 1,
-    "safebrowsing.enabled": True
-})
+#variabili globali
+driver = None
+wait = None
+
+def init_web_interaction(web_driver):
+    global driver, wait
+    driver = web_driver
+    WebDriverWait(driver, Config.DEFAULT_TIMEOUT)
 
 
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
-wait = WebDriverWait(driver, 10)
-
-
-def smart_page_load(driver, domain, timeout=10):
+def smart_page_load(driver, domain, timeout = Config.DEFAULT_TIMEOUT):
     """
     Carica la pagina e determina se ha avuto successo o è andato in errore
     """
@@ -58,7 +35,7 @@ def smart_page_load(driver, domain, timeout=10):
         # Controlla se c'è una pagina di errore
         try:
             # Prova a trovare elementi di errore con timeout breve
-            error_element = WebDriverWait(driver, 2).until(
+            error_element = WebDriverWait(driver, Config.SHORT_TIMEOUT).until(
                 EC.presence_of_element_located((By.ID, "main-frame-error"))
             )
             print("Trovata pagina di errore HTTPS")
@@ -107,6 +84,7 @@ def load_page_with_protocol_detection(driver, domain):
     
     return None, None
 
+
 #Funzione che interagisce con gli elementi del DOM per eseguire il login da Amministratore
 def login_amministratore():
     try:
@@ -122,7 +100,7 @@ def login_amministratore():
         wait_random_time()
 
         #inserisco la password nel campo apposito
-        driver.find_element(By.ID, "ID_LGI_PASS").send_keys("12345678")
+        driver.find_element(By.ID, "ID_LGI_PASS").send_keys(Config.ADMIN_PASSWORD)
         wait_random_time()
 
         #cerco e clicco sul bottone per confermare il login

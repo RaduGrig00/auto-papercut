@@ -1,14 +1,14 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import tkinter as tk
 from gui import GuiApp
-from web_interaction import smart_page_load, login_amministratore, disattiva_funzioni_usb, crea_certificato, compila_certificato, abilita_ssl, rimuovi_verifica_cert, imposta_stampa_no_aut, disattiva_dpws, imp_web_dav, imp_open_api, logout_finally
+from config import Config
+from web_interaction import *
 
 def click_until_selected():
     try:
@@ -22,103 +22,81 @@ def click_until_selected():
     except TimeoutException:
         return False
 
-
-if __name__ == "__main__":
+def main():
+    """Funzione principale che orchestrare tutto il processo"""
     root = tk.Tk()
     app = GuiApp(root)
     root.mainloop()
 
-if hasattr(app, "certificato"):
+    if not hasattr(app, "certificato") or not hasattr(app, "indirizzo_ip"):
+        print("Dati non completi, uscita dal programma")
+        return
+    
     cert = app.certificato
     ip = app.indirizzo_ip
+
     print("Dati raccolti dalla GUI:")
     print(f"Reparto: {cert.reparto}")
     print(f"Nome: {cert.nome}")
     print(f"Email: {cert.email}")
 
-    options = Options()
-    options.add_argument("--incognito")
-   # Opzioni per ignorare errori SSL/certificati
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors')
-    options.add_argument('--ignore-certificate-errors-spki-list')
-    options.add_argument('--allow-running-insecure-content')
-    options.add_argument('--disable-web-security')
-    options.add_argument('--allow-running-insecure-content')
-    options.add_argument('--ignore-certificate-errors-spki-list')
-    options.add_argument('--ignore-ssl-errors-type')
-    options.add_argument('--accept-insecure-certs')
-    options.add_argument('--disable-features=VizDisplayCompositor')
-    options.add_argument('--test-type')
-    options.add_argument('--disable-extensions')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("prefs", {
-        "directory_upgrade": True,
-        "profile.default_content_settings.popups": 0,
-        "plugins.always_open_pdf_externally": True,
-        "profile.default_content_setting_values.automatic_downloads": 1,
-        "safebrowsing.enabled": True
-    })
-
+    options = Config.get_chrome_options()
 
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    page_source = driver.page_source.lower()
+    driver = None
     
-
-    domain = f"{ip}/wcd/spa_login.html"
-
-    protocol, final_url = smart_page_load(driver, domain)
 
     try:
-        # Prova a trovare l'errore con timeout breve
-        wait_short = WebDriverWait(driver, 2)
-        wait_short.until(EC.presence_of_element_located((By.ID, "main-frame-error")))
-        
-        # Se arriviamo qui, c'è un errore
-        print("Trovato errore, provo HTTP...")
-        driver.get(f"http://{ip}/wcd/spa_login.html")
-    
-    except TimeoutException:
-        # Nessun errore trovato = successo!
-        print("Pagina caricata correttamente, procedo...")
+        driver = webdriver.Chrome(service=service, options=options)
 
-    driver.maximize_window()
-    
-    driver.implicitly_wait(5)
-    
+        domain = f"{ip}/wcd/spa_login.html"
+
+        protocol, final_url = smart_page_load(driver, domain)
+        # Prova a trovare l'errore con timeout breve
+        try:
+            
+            WebDriverWait(driver, Config.SHORT_TIMEOUT).until(EC.presence_of_element_located((By.ID, "main-frame-error")))
+                
+            # Se arriviamo qui, c'è un errore
+            print("Trovato errore, provo HTTP...")
+            driver.get(f"http://{ip}/wcd/spa_login.html")
+        except TimeoutException:
+            print("Pagina caricata correttamente")
+
+        driver.maximize_window()
+        
+        driver.implicitly_wait(5)
+
+        esegui_automazione(driver, cert)
+        
+    except Exception as e:
+        print(f"Errore automazione: {e}")
+        
+    finally:
+        if driver:
+            try:
+                logout_finally()
+            except: 
+                driver.quit()
+
+def esegui_automazione(driver, cert):
+    init_web_interaction(driver)
+
     try:
         login_amministratore()
-
         disattiva_funzioni_usb()
-
         crea_certificato()
-        
         compila_certificato(cert)
-
         abilita_ssl()
-        
         rimuovi_verifica_cert()
-
         imposta_stampa_no_aut()
-
         disattiva_dpws()
-
         imp_web_dav()
-
         imp_open_api()
-
+        
     except Exception as e:
-        print(f"Errore: {e}")
-    
-    finally:
-        logout_finally()
+        print(f"Errore durante sequenza automazione: {e}")
+        raise
 
-
-else:
-    print("Nessun certificato inserito")
-
-
+if __name__ == "__main__":
+    main()
