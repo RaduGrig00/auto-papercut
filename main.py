@@ -51,7 +51,7 @@ def main():
 
         domain = f"{ip}/wcd/spa_login.html"
 
-        protocol, final_url = smart_page_load(driver, domain)
+        #protocol, final_url = smart_page_load(driver, domain)
         # Prova a trovare l'errore con timeout breve
         try:
             
